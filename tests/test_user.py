@@ -127,3 +127,4 @@ def test_login_success(app: Flask, client: FlaskClient):
     assert response.status_code == 200
     data = response.get_json()
     assert data["username"] == TEST_USERNAME
+    assert data["email"] == TEST_EMAIL
