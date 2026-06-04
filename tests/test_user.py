@@ -68,7 +68,7 @@ def test_register_missing_fields(client: FlaskClient):
         assert response.status_code == 400 or response.status_code == 415
 
 
-def test_register_route(client: FlaskClient):
+def test_register_success(client: FlaskClient):
     response = client.post(
         "/api/auth/register",
         json={
