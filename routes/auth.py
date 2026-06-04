@@ -1,5 +1,3 @@
-import json
-
 from flask import Blueprint, jsonify, request
 
 from models.db import db
