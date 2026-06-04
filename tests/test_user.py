@@ -47,6 +47,12 @@ def test_create_user(app: Flask):
 
 
 # === REGISTER LOGIC ===
+# TODO
+# - DUPLICATED NAME TEST (fail)
+# - DUPLICATED EMAIL TEST (fail)
+# - MIN USERNAME LENGTH TEST (fail)
+# - INVALID EMAIL TEST (fail)
+# - INVALID/WEAK PASSWORD TEST (fail)
 
 
 def test_register_missing_fields(client: FlaskClient):
