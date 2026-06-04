@@ -1,3 +1,5 @@
+import json
+
 from flask import Blueprint, jsonify, request
 
 from models.db import db
@@ -30,3 +32,25 @@ def register():
     db.session.commit()
 
     return jsonify(user.to_dict()), 201
+
+
+@auth_blueprint.route("/login", methods=["POST"])
+def login():
+    data = request.get_json()
+
+    if not all(k in data for k in ("username", "password")):
+        return jsonify(
+            {"error": "Invalid json: Body must contain username and password"}
+        ), 400
+
+    username = data["username"]
+    password = data["password"]
+
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"error": "Invalid credentials"}), 404
+
+    if not user.check_password(password):
+        return jsonify({"error": "Invalid credentials"}), 404
+
+    return jsonify(user.to_dict()), 200
