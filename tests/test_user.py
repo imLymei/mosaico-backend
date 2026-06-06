@@ -8,7 +8,7 @@ from models.user import User
 
 TEST_USERNAME = "TEST123"
 TEST_EMAIL = "TEST@test.com"
-TEST_PASSWORD = "SECRET123"
+TEST_PASSWORD = "Secret123!"
 
 
 @pytest.fixture
@@ -47,8 +47,6 @@ def test_create_user(app: Flask):
 
 
 # === REGISTER LOGIC ===
-# TODO
-# - INVALID/WEAK PASSWORD TEST (fail)
 
 
 def test_register_username_min_length(client: FlaskClient):
@@ -119,6 +117,60 @@ def test_register_invalid_email(client: FlaskClient):
         }
         response = client.post("/api/auth/register", json=body)
         assert response.status_code == 201
+
+
+def test_register_weak_password(client: FlaskClient):
+    weak_passwords = [
+        "short1!",
+        "NoSpecialChar123",
+        "nouppercase123!",
+        "NOLOWERCASE123!",
+        "NoNumbers!@#$%",
+        "Password!",
+        "",
+        "a" * 7,
+        "a" * 100,
+        "password123!",
+        "PASSWORD123!",
+        "P@ss",
+        "P@ssword",
+        "12345678",
+        "aaaaaaaa!",
+        "AAAAAAAA!",
+        "         !",
+    ]
+
+    valid_passwords = [
+        "Secret123!",
+        "Str0ng!Pass",
+        "MyP@ssw0rd!",
+        "C0mpl3x#Pass",
+        "Ab1!Cd2@Ef3#",
+        "Test1234!",
+        "Xy9#Zw4@Km1!",
+        "Pass1!word2@",
+        "aB3$dE5%fG7&",
+        "Qw!er123Ty",
+        "12345678!aA",
+    ]
+
+    for idx, password in enumerate(weak_passwords):
+        body = {
+            "username": f"weak_pw_user_{idx}_{len(password)}",
+            "email": f"weak_pw_{idx}_{len(password)}@test.com",
+            "password": password,
+        }
+        response = client.post("/api/auth/register", json=body)
+        assert response.status_code == 400, f"Expected 400 for weak password '{password[:20]}...', got {response.status_code}"
+
+    for idx, password in enumerate(valid_passwords):
+        body = {
+            "username": f"valid_pw_user_{idx}_{len(password)}",
+            "email": f"valid_pw_{idx}_{len(password)}@test.com",
+            "password": password,
+        }
+        response = client.post("/api/auth/register", json=body)
+        assert response.status_code == 201, f"Expected 201 for valid password '{password[:20]}...', got {response.status_code}"
 
 
 def test_register_duplicated_username(client: FlaskClient):

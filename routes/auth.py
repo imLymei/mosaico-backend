@@ -19,6 +19,7 @@ def register():
 
     username = data["username"]
     email = data["email"]
+    password = data["password"]
 
     if len(username) < 4:
         return jsonify({"error": "Invalid username"}), 400
@@ -27,6 +28,23 @@ def register():
         email,
     ):
         return jsonify({"error": "Invalid email format"}), 400
+
+    if len(password) < 8:
+        return jsonify({"error": "Password must be at least 8 characters"}), 400
+    if not re.search(r"[A-Z]", password):
+        return jsonify(
+            {"error": "Password must contain at least one uppercase letter"}
+        ), 400
+    if not re.search(r"[a-z]", password):
+        return jsonify(
+            {"error": "Password must contain at least one lowercase letter"}
+        ), 400
+    if not re.search(r"[0-9]", password):
+        return jsonify({"error": "Password must contain at least one number"}), 400
+    if not re.search(r"[!@#$%^&-_*(),.?\":{}|<>]", password):
+        return jsonify(
+            {"error": "Password must contain at least one special character"}
+        ), 400
 
     if User.query.filter_by(username=username).first():
         return jsonify({"error": "Username is taken"}), 409
