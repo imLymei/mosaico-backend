@@ -15,3 +15,17 @@ source .venv/bin/activate
 pip install -r requirements.txt
 flask --app main run
 ```
+
+## Running tests
+
+### UV
+
+```bash
+uv run pytest
+```
+
+### Python
+
+```bash
+python -m pytest
+```
