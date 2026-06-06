@@ -48,11 +48,110 @@ def test_create_user(app: Flask):
 
 # === REGISTER LOGIC ===
 # TODO
-# - DUPLICATED NAME TEST (fail)
-# - DUPLICATED EMAIL TEST (fail)
-# - MIN USERNAME LENGTH TEST (fail)
 # - INVALID EMAIL TEST (fail)
 # - INVALID/WEAK PASSWORD TEST (fail)
+
+
+def test_register_username_min_length(client: FlaskClient):
+    body = {
+        "username": "1234",
+        "email": TEST_EMAIL,
+        "password": TEST_PASSWORD,
+    }
+
+    firstResponse = client.post("/api/auth/register", json=body)
+    assert firstResponse.status_code == 201
+
+    body["username"] = "123"
+    body["email"] += ".two"
+
+    firstResponse = client.post("/api/auth/register", json=body)
+    assert firstResponse.status_code == 400
+
+
+def test_register_invalid_email(client: FlaskClient):
+    invalid_emails = [
+        ".two",
+        "plainaddress",
+        "@missingusername.com",
+        "noat-sign.com",
+        "user@",
+        "user@.com",
+        "user@com",
+        "user name@domain.com",
+        "user@domain",
+        "user@.domain.com",
+        "user@domain..com",
+        "user@domain.c",
+        "user@-domain.com",
+        "user@domain-.com",
+        "user name",
+        "",
+        "   ",
+        "user@domain.com.",
+        ".user@domain.com",
+        "user.@domain.com.",
+    ]
+
+    valid_emails = [
+        "user@domain.com",
+        "first.last@domain.co.uk",
+        "user123@test.org",
+        "name+tag@example.com",
+        "name%20@example.com",
+        "user_name@sub.domain.com",
+        "a@b.cd",
+    ]
+
+    for email in invalid_emails:
+        body = {
+            "username": f"invalid_user_{email.replace(' ', '_')[:20]}",
+            "email": email,
+            "password": TEST_PASSWORD,
+        }
+        response = client.post("/api/auth/register", json=body)
+        assert response.status_code == 400
+
+    for email in valid_emails:
+        body = {
+            "username": f"valid_user_{email.split('@')[0][:20]}",
+            "email": email,
+            "password": TEST_PASSWORD,
+        }
+        response = client.post("/api/auth/register", json=body)
+        assert response.status_code == 201
+
+
+def test_register_duplicated_username(client: FlaskClient):
+    body = {
+        "username": TEST_USERNAME,
+        "email": TEST_EMAIL,
+        "password": TEST_PASSWORD,
+    }
+
+    firstResponse = client.post("/api/auth/register", json=body)
+    assert firstResponse.status_code == 201
+
+    body["email"] += ".two"
+
+    secondResponse = client.post("/api/auth/register", json=body)
+    assert secondResponse.status_code == 409
+
+
+def test_register_duplicated_email(client: FlaskClient):
+    body = {
+        "username": TEST_USERNAME,
+        "email": TEST_EMAIL,
+        "password": TEST_PASSWORD,
+    }
+
+    firstResponse = client.post("/api/auth/register", json=body)
+    assert firstResponse.status_code == 201
+
+    body["username"] += "_two"
+
+    secondResponse = client.post("/api/auth/register", json=body)
+    assert secondResponse.status_code == 409
 
 
 def test_register_missing_fields(client: FlaskClient):
