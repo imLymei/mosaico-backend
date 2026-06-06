@@ -48,7 +48,6 @@ def test_create_user(app: Flask):
 
 # === REGISTER LOGIC ===
 # TODO
-# - INVALID EMAIL TEST (fail)
 # - INVALID/WEAK PASSWORD TEST (fail)
 
 
