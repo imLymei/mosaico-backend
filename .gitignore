@@ -6,6 +6,8 @@ dist/
 wheels/
 *.egg-info
 
+vaults/
+
 # SQLite instance
 instance/
 
