@@ -3,6 +3,7 @@ from flask_cors import CORS
 
 from models.db import db
 from routes.auth import auth_blueprint
+from routes.vault import vault_blueprint
 
 
 def create_app():
@@ -17,6 +18,7 @@ def create_app():
         return "Hello World"
 
     app.register_blueprint(auth_blueprint, url_prefix="/api/auth")
+    app.register_blueprint(vault_blueprint, url_prefix="/api/vault")
 
     with app.app_context():
         db.create_all()
