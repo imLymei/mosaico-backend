@@ -5,8 +5,10 @@ from models.db import db
 from routes.auth import auth_blueprint
 from routes.vault import vault_blueprint
 
+__all__ = ["create_app"]
 
-def create_app():
+
+def create_app() -> Flask:
     app = Flask(__name__)
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///vault.db"
 
@@ -14,7 +16,7 @@ def create_app():
     db.init_app(app)
 
     @app.route("/")
-    def root():
+    def root() -> str:
         return "Hello World"
 
     app.register_blueprint(auth_blueprint, url_prefix="/api/auth")

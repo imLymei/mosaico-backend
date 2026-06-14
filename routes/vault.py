@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 from flask import Blueprint, jsonify, request, send_file
 from werkzeug.utils import secure_filename
@@ -12,11 +13,11 @@ VAULT_BASE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "vaults")
 vault_blueprint = Blueprint("vault", __name__)
 
 
-def _get_user_by_id(user_id: int):
+def _get_user_by_id(user_id: int) -> User | None:
     return db.session.get(User, user_id)
 
 
-def _get_vault_by_id(vault_id: int):
+def _get_vault_by_id(vault_id: int) -> Vault | None:
     return db.session.get(Vault, vault_id)
 
 
@@ -46,12 +47,14 @@ def list_vaults():
 @vault_blueprint.route("/", methods=["POST"])
 def create_vault():
     data = request.get_json()
+    if data is None:
+        return jsonify({"error": "Invalid json: Body must contain userId and name"}), 400
 
     if not all(k in data for k in ("userId", "name")):
         return jsonify({"error": "Invalid json: Body must contain userId and name"}), 400
 
-    user_id = data["userId"]
-    name = data["name"]
+    user_id: int = data["userId"]
+    name: str = data["name"]
 
     user = _get_user_by_id(user_id)
     if not user:
@@ -80,6 +83,9 @@ def update_vault(vault_id: int):
         return jsonify({"error": "Vault not found"}), 404
 
     data = request.get_json()
+    if data is None:
+        return jsonify(vault.to_dict()), 200
+
     if "name" in data:
         vault.name = data["name"]
     db.session.commit()

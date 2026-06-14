@@ -12,7 +12,7 @@ TEST_PASSWORD = "Secret123!"
 
 
 @pytest.fixture
-def app():
+def app() -> Flask:
     app = create_app()
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     app.config["TESTING"] = True
@@ -24,7 +24,7 @@ def app():
 
 
 @pytest.fixture
-def client(app: Flask):
+def client(app: Flask) -> FlaskClient:
     return app.test_client()
 
 

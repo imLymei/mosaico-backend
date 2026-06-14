@@ -25,7 +25,7 @@ class Vault(db.Model):
         self.user_id = user_id
         self.name = name
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
             "id": self.id,
             "userId": self.user_id,
@@ -61,7 +61,7 @@ class VaultItem(db.Model):
         self.mime_type = mime_type
         self.file_size = file_size
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
             "id": self.id,
             "vaultId": self.vault_id,

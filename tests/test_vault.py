@@ -1,5 +1,6 @@
 import os
 import tempfile
+from typing import Any
 
 import pytest
 from flask import Flask
@@ -16,7 +17,7 @@ TEST_PASSWORD = "Secret123!"
 
 
 @pytest.fixture
-def app():
+def app() -> Flask:
     app = create_app()
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     app.config["TESTING"] = True
@@ -28,12 +29,12 @@ def app():
 
 
 @pytest.fixture
-def client(app: Flask):
+def client(app: Flask) -> FlaskClient:
     return app.test_client()
 
 
 @pytest.fixture
-def user_id(app: Flask):
+def user_id(app: Flask) -> int:
     with app.app_context():
         u = User(username=TEST_USERNAME, email=TEST_EMAIL)
         u.set_password(TEST_PASSWORD)

@@ -26,13 +26,13 @@ class User(db.Model):
         self.username = username
         self.email = email
 
-    def set_password(self, password: str):
+    def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
 
-    def check_password(self, password: str):
+    def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
             "id": self.id,
             "username": self.username,

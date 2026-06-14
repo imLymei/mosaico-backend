@@ -1,4 +1,5 @@
 import re
+from typing import Any
 
 from flask import Blueprint, jsonify, request
 
@@ -11,15 +12,17 @@ auth_blueprint = Blueprint("auth", __name__)
 @auth_blueprint.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
+    if data is None:
+        return jsonify({"error": "Invalid json: Body must contain username, email and password"}), 400
 
     if not all(k in data for k in ("username", "email", "password")):
         return jsonify(
             {"error": "Invalid json: Body must contain username, email and password"}
         ), 400
 
-    username = data["username"]
-    email = data["email"]
-    password = data["password"]
+    username: str = data["username"]
+    email: str = data["email"]
+    password: str = data["password"]
 
     if len(username) < 4:
         return jsonify({"error": "Invalid username"}), 400
@@ -41,7 +44,7 @@ def register():
         ), 400
     if not re.search(r"[0-9]", password):
         return jsonify({"error": "Password must contain at least one number"}), 400
-    if not re.search(r"[!@#$%^&-_*(),.?\":{}|<>]", password):
+    if not re.search(r"[!@#$%^&*_+,.?\":{}|<>-]", password):
         return jsonify(
             {"error": "Password must contain at least one special character"}
         ), 400
@@ -63,14 +66,16 @@ def register():
 @auth_blueprint.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
+    if data is None:
+        return jsonify({"error": "Invalid json: Body must contain username and password"}), 400
 
     if not all(k in data for k in ("username", "password")):
         return jsonify(
             {"error": "Invalid json: Body must contain username and password"}
         ), 400
 
-    username = data["username"]
-    password = data["password"]
+    username: str = data["username"]
+    password: str = data["password"]
 
     user = User.query.filter_by(username=username).first()
     if not user:
