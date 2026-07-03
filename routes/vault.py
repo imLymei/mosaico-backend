@@ -62,6 +62,9 @@ def create_vault():
     name: str = data["name"]
     icon: str | None = data.get("icon")
 
+    if not name.strip():
+        return jsonify({"error": "Vault name is required"}), 400
+
     vault = Vault(user_id=user.id, name=name)
     if icon is not None:
         vault.icon = icon
