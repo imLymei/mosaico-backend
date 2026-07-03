@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 from models.db import db
 from models.user import User
 from models.vault import Vault, VaultItem
+from routes.auth import _get_user_by_token
 
 VAULT_BASE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "vaults")
 
@@ -27,40 +28,43 @@ def _get_vault_dir(vault_id: int) -> str:
     return vault_dir
 
 
+def _get_current_user() -> User | None:
+    token = request.headers.get("Authorization", "").removeprefix("Bearer ")
+    return _get_user_by_token(token)
+
+
 # === VAULT ROUTES ===
 
 
 @vault_blueprint.route("/", methods=["GET"])
 def list_vaults():
-    user_id = request.args.get("userId", type=int)
-    if user_id is None:
-        return jsonify({"error": "Missing userId query param"}), 400
-
-    user = _get_user_by_id(user_id)
+    user = _get_current_user()
     if not user:
-        return jsonify({"error": "User not found"}), 404
+        return jsonify({"error": "Unauthorized"}), 401
 
-    vaults = Vault.query.filter_by(user_id=user_id).all()
+    vaults = Vault.query.filter_by(user_id=user.id).all()
     return jsonify([v.to_dict() for v in vaults]), 200
 
 
 @vault_blueprint.route("/", methods=["POST"])
 def create_vault():
+    user = _get_current_user()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
     data = request.get_json()
     if data is None:
-        return jsonify({"error": "Invalid json: Body must contain userId and name"}), 400
+        return jsonify({"error": "Invalid json: Body must contain name"}), 400
 
-    if not all(k in data for k in ("userId", "name")):
-        return jsonify({"error": "Invalid json: Body must contain userId and name"}), 400
+    if "name" not in data:
+        return jsonify({"error": "Invalid json: Body must contain name"}), 400
 
-    user_id: int = data["userId"]
     name: str = data["name"]
+    icon: str | None = data.get("icon")
 
-    user = _get_user_by_id(user_id)
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    vault = Vault(user_id=user_id, name=name)
+    vault = Vault(user_id=user.id, name=name)
+    if icon is not None:
+        vault.icon = icon
     db.session.add(vault)
     db.session.commit()
 
@@ -69,6 +73,10 @@ def create_vault():
 
 @vault_blueprint.route("/<int:vault_id>", methods=["GET"])
 def get_vault(vault_id: int):
+    user = _get_current_user()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
     vault = _get_vault_by_id(vault_id)
     if not vault:
         return jsonify({"error": "Vault not found"}), 404
@@ -78,9 +86,16 @@ def get_vault(vault_id: int):
 
 @vault_blueprint.route("/<int:vault_id>", methods=["PUT"])
 def update_vault(vault_id: int):
+    user = _get_current_user()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
     vault = _get_vault_by_id(vault_id)
     if not vault:
         return jsonify({"error": "Vault not found"}), 404
+
+    if vault.user_id != user.id:
+        return jsonify({"error": "Forbidden"}), 403
 
     data = request.get_json()
     if data is None:
@@ -88,6 +103,8 @@ def update_vault(vault_id: int):
 
     if "name" in data:
         vault.name = data["name"]
+    if "icon" in data:
+        vault.icon = data["icon"]
     db.session.commit()
 
     return jsonify(vault.to_dict()), 200
@@ -95,9 +112,16 @@ def update_vault(vault_id: int):
 
 @vault_blueprint.route("/<int:vault_id>", methods=["DELETE"])
 def delete_vault(vault_id: int):
+    user = _get_current_user()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
     vault = _get_vault_by_id(vault_id)
     if not vault:
         return jsonify({"error": "Vault not found"}), 404
+
+    if vault.user_id != user.id:
+        return jsonify({"error": "Forbidden"}), 403
 
     vault_dir = os.path.join(VAULT_BASE, str(vault_id))
     if os.path.exists(vault_dir):
@@ -118,6 +142,10 @@ def delete_vault(vault_id: int):
 
 @vault_blueprint.route("/<int:vault_id>/items", methods=["GET"])
 def list_items(vault_id: int):
+    user = _get_current_user()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
     vault = _get_vault_by_id(vault_id)
     if not vault:
         return jsonify({"error": "Vault not found"}), 404
@@ -128,9 +156,16 @@ def list_items(vault_id: int):
 
 @vault_blueprint.route("/<int:vault_id>/items", methods=["POST"])
 def upload_item(vault_id: int):
+    user = _get_current_user()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
     vault = _get_vault_by_id(vault_id)
     if not vault:
         return jsonify({"error": "Vault not found"}), 404
+
+    if vault.user_id != user.id:
+        return jsonify({"error": "Forbidden"}), 403
 
     if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
@@ -164,6 +199,10 @@ def upload_item(vault_id: int):
 
 @vault_blueprint.route("/<int:vault_id>/items/<int:item_id>", methods=["GET"])
 def download_item(vault_id: int, item_id: int):
+    user = _get_current_user()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
     item = db.session.get(VaultItem, item_id)
     if not item or item.vault_id != vault_id:
         return jsonify({"error": "Item not found"}), 404
@@ -172,14 +211,53 @@ def download_item(vault_id: int, item_id: int):
     if not os.path.exists(filepath):
         return jsonify({"error": "File not found on disk"}), 404
 
-    return send_file(filepath, mimetype=item.mime_type, as_attachment=True, download_name=item.filename)
+    inline = request.args.get("inline", "false").lower() == "true"
+    return send_file(
+        filepath,
+        mimetype=item.mime_type,
+        as_attachment=not inline,
+        download_name=item.filename if not inline else None,
+    )
+
+
+@vault_blueprint.route("/<int:vault_id>/items/<int:item_id>", methods=["PUT"])
+def update_item(vault_id: int, item_id: int):
+    user = _get_current_user()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    item = db.session.get(VaultItem, item_id)
+    if not item or item.vault_id != vault_id:
+        return jsonify({"error": "Item not found"}), 404
+
+    vault = db.session.get(Vault, vault_id)
+    if vault and vault.user_id != user.id:
+        return jsonify({"error": "Forbidden"}), 403
+
+    data = request.get_json()
+    if data is None:
+        return jsonify(item.to_dict()), 200
+
+    if "name" in data:
+        item.name = data["name"]
+    db.session.commit()
+
+    return jsonify(item.to_dict()), 200
 
 
 @vault_blueprint.route("/<int:vault_id>/items/<int:item_id>", methods=["DELETE"])
 def delete_item(vault_id: int, item_id: int):
+    user = _get_current_user()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
     item = db.session.get(VaultItem, item_id)
     if not item or item.vault_id != vault_id:
         return jsonify({"error": "Item not found"}), 404
+
+    vault = db.session.get(Vault, vault_id)
+    if vault and vault.user_id != user.id:
+        return jsonify({"error": "Forbidden"}), 403
 
     filepath = os.path.join(VAULT_BASE, str(vault_id), item.filename)
     if os.path.exists(filepath):

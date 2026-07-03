@@ -1,4 +1,5 @@
 import re
+from datetime import datetime, timezone
 from typing import Any
 
 from flask import Blueprint, jsonify, request
@@ -9,11 +10,25 @@ from models.user import User
 auth_blueprint = Blueprint("auth", __name__)
 
 
+def _get_user_by_token(token: str | None) -> User | None:
+    if not token:
+        return None
+    user = User.query.filter_by(session_token=token).first()
+    if user and user.is_token_valid():
+        return user
+    if user:
+        user.clear_session_token()
+        db.session.commit()
+    return None
+
+
 @auth_blueprint.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
     if data is None:
-        return jsonify({"error": "Invalid json: Body must contain username, email and password"}), 400
+        return jsonify(
+            {"error": "Invalid json: Body must contain username, email and password"}
+        ), 400
 
     if not all(k in data for k in ("username", "email", "password")):
         return jsonify(
@@ -67,7 +82,9 @@ def register():
 def login():
     data = request.get_json()
     if data is None:
-        return jsonify({"error": "Invalid json: Body must contain username and password"}), 400
+        return jsonify(
+            {"error": "Invalid json: Body must contain username and password"}
+        ), 400
 
     if not all(k in data for k in ("username", "password")):
         return jsonify(
@@ -84,4 +101,19 @@ def login():
     if not user.check_password(password):
         return jsonify({"error": "Invalid credentials"}), 404
 
-    return jsonify(user.to_dict()), 200
+    user.generate_session_token()
+    db.session.commit()
+
+    user_dict = user.to_dict()
+    user_dict["token"] = user.session_token
+    return jsonify(user_dict), 200
+
+
+@auth_blueprint.route("/logout", methods=["POST"])
+def logout():
+    token = request.headers.get("Authorization", "").removeprefix("Bearer ")
+    user = _get_user_by_token(token)
+    if user:
+        user.clear_session_token()
+        db.session.commit()
+    return jsonify({"message": "Logged out"}), 200

@@ -284,3 +284,5 @@ def test_login_success(app: Flask, client: FlaskClient):
     data = response.get_json()
     assert data["username"] == TEST_USERNAME
     assert data["email"] == TEST_EMAIL
+    assert "token" in data
+    assert len(data["token"]) > 0
