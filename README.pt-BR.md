@@ -13,6 +13,12 @@ A documentação interativa Swagger/OpenAPI está disponível em `http://localho
 ```bash
 uv sync
 uv run flask --app main run
+```
+
+## Executar com Python
+
+```bash
+python -m venv .venv
 
 # Linux / Mac:
 source .venv/bin/activate
