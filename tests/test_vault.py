@@ -1,6 +1,6 @@
 import os
 import tempfile
-from typing import Any
+from typing import Generator
 
 import pytest
 from flask import Flask
@@ -17,9 +17,8 @@ TEST_PASSWORD = "Secret123!"
 
 
 @pytest.fixture
-def app() -> Flask:
-    app = create_app()
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+def app() -> Generator[Flask, None, None]:
+    app = create_app("sqlite:///:memory:")
     app.config["TESTING"] = True
 
     with app.app_context():
@@ -85,8 +84,12 @@ def test_create_vault_user_not_found(client: FlaskClient):
 
 
 def test_create_vault_multiple_for_same_user(client: FlaskClient, auth_token: str):
-    r1 = client.post("/api/vault/", json={"name": "Vault 1"}, headers=_headers(auth_token))
-    r2 = client.post("/api/vault/", json={"name": "Vault 2"}, headers=_headers(auth_token))
+    r1 = client.post(
+        "/api/vault/", json={"name": "Vault 1"}, headers=_headers(auth_token)
+    )
+    r2 = client.post(
+        "/api/vault/", json={"name": "Vault 2"}, headers=_headers(auth_token)
+    )
     assert r1.status_code == 201
     assert r2.status_code == 201
 
@@ -118,7 +121,9 @@ def test_list_vaults_missing_user_id(client: FlaskClient):
 
 
 def test_get_vault_success(client: FlaskClient, auth_token: str):
-    vault_resp = client.post("/api/vault/", json={"name": "Get Me"}, headers=_headers(auth_token))
+    vault_resp = client.post(
+        "/api/vault/", json={"name": "Get Me"}, headers=_headers(auth_token)
+    )
     vault_id = vault_resp.get_json()["id"]
 
     response = client.get(f"/api/vault/{vault_id}", headers=_headers(auth_token))
@@ -135,16 +140,24 @@ def test_get_vault_not_found(client: FlaskClient, auth_token: str):
 
 
 def test_update_vault_success(client: FlaskClient, auth_token: str):
-    vault_resp = client.post("/api/vault/", json={"name": "Old Name"}, headers=_headers(auth_token))
+    vault_resp = client.post(
+        "/api/vault/", json={"name": "Old Name"}, headers=_headers(auth_token)
+    )
     vault_id = vault_resp.get_json()["id"]
 
-    response = client.put(f"/api/vault/{vault_id}", json={"name": "New Name"}, headers=_headers(auth_token))
+    response = client.put(
+        f"/api/vault/{vault_id}",
+        json={"name": "New Name"},
+        headers=_headers(auth_token),
+    )
     assert response.status_code == 200
     assert response.get_json()["name"] == "New Name"
 
 
 def test_update_vault_not_found(client: FlaskClient, auth_token: str):
-    response = client.put("/api/vault/99999", json={"name": "X"}, headers=_headers(auth_token))
+    response = client.put(
+        "/api/vault/99999", json={"name": "X"}, headers=_headers(auth_token)
+    )
     assert response.status_code == 404
 
 
@@ -152,7 +165,9 @@ def test_update_vault_not_found(client: FlaskClient, auth_token: str):
 
 
 def test_delete_vault_success(client: FlaskClient, auth_token: str):
-    vault_resp = client.post("/api/vault/", json={"name": "ToDelete"}, headers=_headers(auth_token))
+    vault_resp = client.post(
+        "/api/vault/", json={"name": "ToDelete"}, headers=_headers(auth_token)
+    )
     vault_id = vault_resp.get_json()["id"]
 
     response = client.delete(f"/api/vault/{vault_id}", headers=_headers(auth_token))
@@ -171,7 +186,9 @@ def test_delete_vault_not_found(client: FlaskClient, auth_token: str):
 
 
 def test_upload_item_success(client: FlaskClient, auth_token: str):
-    vault_resp = client.post("/api/vault/", json={"name": "Item Vault"}, headers=_headers(auth_token))
+    vault_resp = client.post(
+        "/api/vault/", json={"name": "Item Vault"}, headers=_headers(auth_token)
+    )
     vault_id = vault_resp.get_json()["id"]
 
     data = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
@@ -196,10 +213,14 @@ def test_upload_item_success(client: FlaskClient, auth_token: str):
 
 
 def test_upload_item_no_file(client: FlaskClient, auth_token: str):
-    vault_resp = client.post("/api/vault/", json={"name": "X"}, headers=_headers(auth_token))
+    vault_resp = client.post(
+        "/api/vault/", json={"name": "X"}, headers=_headers(auth_token)
+    )
     vault_id = vault_resp.get_json()["id"]
 
-    response = client.post(f"/api/vault/{vault_id}/items", data={}, headers=_headers(auth_token))
+    response = client.post(
+        f"/api/vault/{vault_id}/items", data={}, headers=_headers(auth_token)
+    )
     assert response.status_code == 400
 
 
@@ -217,7 +238,9 @@ def test_upload_item_vault_not_found(client: FlaskClient, auth_token: str):
 
 
 def test_list_items_success(client: FlaskClient, auth_token: str):
-    vault_resp = client.post("/api/vault/", json={"name": "ItemList"}, headers=_headers(auth_token))
+    vault_resp = client.post(
+        "/api/vault/", json={"name": "ItemList"}, headers=_headers(auth_token)
+    )
     vault_id = vault_resp.get_json()["id"]
 
     data = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
@@ -251,7 +274,9 @@ def test_list_items_success(client: FlaskClient, auth_token: str):
 
 
 def test_download_item_success(client: FlaskClient, auth_token: str):
-    vault_resp = client.post("/api/vault/", json={"name": "Download"}, headers=_headers(auth_token))
+    vault_resp = client.post(
+        "/api/vault/", json={"name": "Download"}, headers=_headers(auth_token)
+    )
     vault_id = vault_resp.get_json()["id"]
 
     data = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
@@ -269,20 +294,28 @@ def test_download_item_success(client: FlaskClient, auth_token: str):
     os.unlink(data.name)
 
     item_id = upload_resp.get_json()["id"]
-    response = client.get(f"/api/vault/{vault_id}/items/{item_id}", headers=_headers(auth_token))
+    response = client.get(
+        f"/api/vault/{vault_id}/items/{item_id}", headers=_headers(auth_token)
+    )
     assert response.status_code == 200
 
 
 def test_download_item_not_found(client: FlaskClient, auth_token: str):
-    vault_resp = client.post("/api/vault/", json={"name": "X"}, headers=_headers(auth_token))
+    vault_resp = client.post(
+        "/api/vault/", json={"name": "X"}, headers=_headers(auth_token)
+    )
     vault_id = vault_resp.get_json()["id"]
 
-    response = client.get(f"/api/vault/{vault_id}/items/99999", headers=_headers(auth_token))
+    response = client.get(
+        f"/api/vault/{vault_id}/items/99999", headers=_headers(auth_token)
+    )
     assert response.status_code == 404
 
 
 def test_download_item_without_auth_returns_401(client: FlaskClient, auth_token: str):
-    vault_resp = client.post("/api/vault/", json={"name": "X"}, headers=_headers(auth_token))
+    vault_resp = client.post(
+        "/api/vault/", json={"name": "X"}, headers=_headers(auth_token)
+    )
     vault_id = vault_resp.get_json()["id"]
 
     data = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
@@ -304,8 +337,12 @@ def test_download_item_without_auth_returns_401(client: FlaskClient, auth_token:
     assert response.status_code == 401
 
 
-def test_download_item_with_inline_param_returns_200(client: FlaskClient, auth_token: str):
-    vault_resp = client.post("/api/vault/", json={"name": "Inline"}, headers=_headers(auth_token))
+def test_download_item_with_inline_param_returns_200(
+    client: FlaskClient, auth_token: str
+):
+    vault_resp = client.post(
+        "/api/vault/", json={"name": "Inline"}, headers=_headers(auth_token)
+    )
     vault_id = vault_resp.get_json()["id"]
 
     data = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
@@ -323,7 +360,10 @@ def test_download_item_with_inline_param_returns_200(client: FlaskClient, auth_t
     os.unlink(data.name)
     item_id = upload_resp.get_json()["id"]
 
-    response = client.get(f"/api/vault/{vault_id}/items/{item_id}?inline=true", headers=_headers(auth_token))
+    response = client.get(
+        f"/api/vault/{vault_id}/items/{item_id}?inline=true",
+        headers=_headers(auth_token),
+    )
     assert response.status_code == 200
     assert "inline" in response.headers.get("Content-Disposition", "")
 
@@ -332,7 +372,9 @@ def test_download_item_with_inline_param_returns_200(client: FlaskClient, auth_t
 
 
 def test_delete_item_success(client: FlaskClient, auth_token: str):
-    vault_resp = client.post("/api/vault/", json={"name": "ItemDel"}, headers=_headers(auth_token))
+    vault_resp = client.post(
+        "/api/vault/", json={"name": "ItemDel"}, headers=_headers(auth_token)
+    )
     vault_id = vault_resp.get_json()["id"]
 
     data = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
@@ -350,16 +392,24 @@ def test_delete_item_success(client: FlaskClient, auth_token: str):
     os.unlink(data.name)
     item_id = upload_resp.get_json()["id"]
 
-    response = client.delete(f"/api/vault/{vault_id}/items/{item_id}", headers=_headers(auth_token))
+    response = client.delete(
+        f"/api/vault/{vault_id}/items/{item_id}", headers=_headers(auth_token)
+    )
     assert response.status_code == 200
 
-    get_resp = client.get(f"/api/vault/{vault_id}/items/{item_id}", headers=_headers(auth_token))
+    get_resp = client.get(
+        f"/api/vault/{vault_id}/items/{item_id}", headers=_headers(auth_token)
+    )
     assert get_resp.status_code == 404
 
 
 def test_delete_item_not_found(client: FlaskClient, auth_token: str):
-    vault_resp = client.post("/api/vault/", json={"name": "X"}, headers=_headers(auth_token))
+    vault_resp = client.post(
+        "/api/vault/", json={"name": "X"}, headers=_headers(auth_token)
+    )
     vault_id = vault_resp.get_json()["id"]
 
-    response = client.delete(f"/api/vault/{vault_id}/items/99999", headers=_headers(auth_token))
+    response = client.delete(
+        f"/api/vault/{vault_id}/items/99999", headers=_headers(auth_token)
+    )
     assert response.status_code == 404

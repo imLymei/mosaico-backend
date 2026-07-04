@@ -9,7 +9,7 @@ from routes.vault import vault_api
 __all__ = ["create_app"]
 
 
-def create_app() -> OpenAPI:
+def create_app(database_uri: str | None = None) -> OpenAPI:
     app = OpenAPI(
         __name__,
         info=Info(
@@ -18,7 +18,10 @@ def create_app() -> OpenAPI:
             description="Mosaico Vault Management API",
         ),
     )
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///vault.db"
+    if database_uri is not None:
+        app.config["SQLALCHEMY_DATABASE_URI"] = database_uri
+    else:
+        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///vault.db"
 
     CORS(app)
     db.init_app(app)

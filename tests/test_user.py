@@ -1,3 +1,5 @@
+from typing import Generator
+
 import pytest
 from flask import Flask
 from flask.testing import FlaskClient
@@ -12,9 +14,8 @@ TEST_PASSWORD = "Secret123!"
 
 
 @pytest.fixture
-def app() -> Flask:
-    app = create_app()
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+def app() -> Generator[Flask, None, None]:
+    app = create_app("sqlite:///:memory:")
     app.config["TESTING"] = True
 
     with app.app_context():
