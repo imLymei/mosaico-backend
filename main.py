@@ -32,6 +32,11 @@ def create_app(database_uri: str | None = None) -> OpenAPI:
     def root() -> str:
         return "Hello World"
 
+    @app.route("/docs")
+    def docs_redirect():
+        from flask import redirect
+        return redirect("/openapi/swagger", code=302)
+
     app.register_api(auth_api, url_prefix="/api/auth")
     app.register_api(vault_api, url_prefix="/api/vault")
 
