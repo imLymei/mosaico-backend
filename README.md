@@ -1,5 +1,7 @@
 # Mosaico Backend
 
+[Português (BR)](README.pt-BR.md)
+
 Mosaico is a vault system for storing and managing passwords within images. This backend provides a RESTful API built with Flask for user authentication, vault management, and file operations.
 
 ## API Documentation:
