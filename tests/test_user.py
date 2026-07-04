@@ -1,3 +1,5 @@
+from typing import Generator
+
 import pytest
 from flask import Flask
 from flask.testing import FlaskClient
@@ -12,9 +14,8 @@ TEST_PASSWORD = "Secret123!"
 
 
 @pytest.fixture
-def app():
-    app = create_app()
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+def app() -> Generator[Flask, None, None]:
+    app = create_app("sqlite:///:memory:")
     app.config["TESTING"] = True
 
     with app.app_context():
@@ -24,7 +25,7 @@ def app():
 
 
 @pytest.fixture
-def client(app: Flask):
+def client(app: Flask) -> FlaskClient:
     return app.test_client()
 
 
@@ -284,3 +285,5 @@ def test_login_success(app: Flask, client: FlaskClient):
     data = response.get_json()
     assert data["username"] == TEST_USERNAME
     assert data["email"] == TEST_EMAIL
+    assert "token" in data
+    assert len(data["token"]) > 0
