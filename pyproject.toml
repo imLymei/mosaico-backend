@@ -1,7 +1,7 @@
 [project]
 name = "mosaico-backend"
 version = "0.1.0"
-description = "Add your description here"
+description = "Mosaico Vault Management API - RESTful API for user authentication, vault management, and file operations with steganography encryption"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
